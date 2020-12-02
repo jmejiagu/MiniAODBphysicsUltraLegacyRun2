@@ -8,9 +8,11 @@ process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data')
+#process.GlobalTag = GlobalTag(process.GlobalTag, '106X_dataRun2_v24', '')# for 2018
+#process.GlobalTag = GlobalTag(process.GlobalTag, '106X_dataRun2_v20', '')# for 2017
+#process.GlobalTag = GlobalTag(process.GlobalTag, '106X_dataRun2_v27', '')# for 2016
 
-
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+process.MessageLogger.cerr.FwkReport.reportEvery = 10000
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 process.options.allowUnscheduled = cms.untracked.bool(True)
 #process.load("FWCore.MessageLogger.MessageLogger_cfi")
@@ -19,12 +21,14 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 
-#MiniAOD
-#'/store/data/Run2018C/Charmonium/MINIAOD/PromptReco-v2/000/319/756/00000/EEF6CEC1-698B-E811-8081-02163E00AF5F.root',
+        #MiniAOD UltraLegacy2018
+        '/store/data/Run2018A/Charmonium/MINIAOD/12Nov2019_UL2018_rsb-v1/10000/08F41CB9-8F1F-D44F-A5FC-D17E38328C4C.root',
 
-## RE-REco
-#'/store/data/Run2018C/Charmonium/MINIAOD/17Sep2018-v1/60000/FF015DDD-854C-FA4B-9E21-36DEAD0A0B0E.root',       
-'/store/data/Run2018C/Charmonium/MINIAOD/17Sep2018-v1/60000/F56E397D-5D00-0840-AC77-0A51C439287D.root',
+        #MiniAOD UltraLegacy2017
+        #'/store/data/Run2017F/Charmonium/MINIAOD/09Aug2019_UL2017-v1/20000/00BACB48-9B0F-8F48-A68B-2F08A3E9E681.root',
+
+        #MiniAOD UltraLegacy2016
+        #'/store/data/Run2016G/Charmonium/MINIAOD/21Feb2020_UL2016-v1/30000/00013A18-278D-5B48-9BEF-1083A8F5C9D7.root',
         
  )
 )
@@ -45,7 +49,7 @@ process.load("myAnalyzers.JPsiKsPAT.Psiks0Rootupler_cfi")
 
 process.TFileService = cms.Service("TFileService",
 
-       fileName = cms.string('Rootuple_Bdtojpiks0_2018_MiniAOD.root'),
+       fileName = cms.string('Rootuple_Bdtojpiks0_2018UL_MiniAOD.root'),
 )
 
 process.mySequence = cms.Sequence(
