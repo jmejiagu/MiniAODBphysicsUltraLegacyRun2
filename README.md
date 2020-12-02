@@ -12,6 +12,15 @@ cd myAnalyzers/JPsiKsPAT/
 git checkout master
 cd ../..
 scram b
+
+```
+
+Run: (use your favorite input sample. You will see examples in the confi files)
+
+
+```
 cd myAnalyzers/JPsiKsPAT/test/
 cmsRun PsikaonRootupler.py
 ```
+
+This example is for Bu hadron. In test directory you can find other examples to run Bs and Bd hadrons too.
