@@ -269,9 +269,9 @@ void JPsiphi::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 
 	} // for (size_t k
       }   // if (abs(dau->pdgId())==531 )
-      if (foundit>=7) break;
+      if (foundit>=6) break;
     } // for i
-    if (foundit!=7) {
+    if (foundit!=6) {
       gen_b_p4.SetPtEtaPhiM(0.,0.,0.,0.);
       gen_phi_p4.SetPtEtaPhiM(0.,0.,0.,0.);
       gen_jpsi_p4.SetPtEtaPhiM(0.,0.,0.,0.);
