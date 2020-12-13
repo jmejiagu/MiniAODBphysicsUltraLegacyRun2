@@ -38,6 +38,7 @@
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h" // muy importante para MiniAOD
+#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/Candidate/interface/CandidateFwd.h"
@@ -64,7 +65,8 @@
 
 #include "TFile.h"
 #include "TTree.h"
-
+#include "TLorentzVector.h"
+#include "TVector3.h"
 
 //
 // class decleration
@@ -78,6 +80,8 @@ public:
   void fillV0(const reco::Candidate& genv0);
   //int const getMuCat(reco::Muon const& muon) const;
   bool IsTheSame(const pat::GenericParticle& tk, const pat::Muon& mu);
+  bool   isAncestor(const reco::Candidate*, const reco::Candidate*);
+  double GetLifetime(TLorentzVector, TVector3, TVector3);
   
 private:
   virtual void beginJob() ;
@@ -87,17 +91,12 @@ private:
   void printout(const RefCountedKinematicParticle& myParticle) const;
   void printout(const RefCountedKinematicTree& myTree) const;
 
-  //void MatchMuonWithTriggers(const pat::Muon &iMuon, const std::vector<std::string>& TrigList, std::string &TrigListNameTmp);
-  void CheckHLTTriggers(const std::vector<std::string>& TrigList);
-
-
-    // ----------member data ---------------------------
+  // ----------member data ---------------------------
   
   edm::EDGetTokenT<edm::View<pat::Muon>> dimuon_Label;
-  //edm::EDGetTokenT<std::vector<pat::GenericParticle>> trakCollection_label;
   edm::EDGetTokenT<edm::View<pat::PackedCandidate>> trakCollection_label;
-  //edm::EDGetTokenT<edm::View<pat::PackedCandidate>> trakCollection_label_lowpt;
-  //edm::EDGetTokenT<pat::PackedCandidateCollection> trakCollection_label;
+  edm::EDGetTokenT<reco::GenParticleCollection> genCands_;
+  edm::EDGetTokenT<pat::PackedGenParticleCollection> packedGenToken_;
   edm::EDGetTokenT<reco::VertexCollection> primaryVertices_Label;
   edm::EDGetTokenT<edm::TriggerResults> triggerResults_Label;
   edm::EDGetTokenT<reco::BeamSpot> BSLabel_;
@@ -155,6 +154,10 @@ private:
 
   int  run, event;
   int   lumiblock;
+
+  TLorentzVector gen_bc_p4,gen_jpsi_p4,gen_pion3_p4,gen_muon1_p4,gen_muon2_p4;
+  TVector3       gen_bc_vtx,gen_jpsi_vtx;
+  float          gen_bc_ct;
 
 };
 #endif

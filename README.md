@@ -21,6 +21,7 @@ Run: (use your favorite input sample. You will see examples in the confi files)
 ```
 cd myAnalyzers/JPsiKsPAT/test/
 cmsRun PsikaonRootupler.py
+cmsRun Psikaon_MC_Rootupler
 ```
 
-This example is for Bu hadron. In test directory you can find other examples to run Bs and Bd hadrons too.
+This example is for Bu hadron, both data and MC config files. In test directory you can find other examples to run Bs and Bd hadrons too.

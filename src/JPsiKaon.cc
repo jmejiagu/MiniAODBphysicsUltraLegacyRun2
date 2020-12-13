@@ -75,10 +75,9 @@
 JPsiKaon::JPsiKaon(const edm::ParameterSet& iConfig)
   :
   dimuon_Label(consumes<edm::View<pat::Muon>>(iConfig.getParameter<edm::InputTag>("dimuons"))),
-  //trakCollection_label(consumes<std::vector<pat::GenericParticle>>(iConfig.getParameter<edm::InputTag>("Trak"))),
   trakCollection_label(consumes<edm::View<pat::PackedCandidate>>(iConfig.getParameter<edm::InputTag>("Trak"))),
-  //trakCollection_label(consumes<pat::PackedCandidateCollection>(iConfig.getParameter<edm::InputTag>("Trak"))),
-  //trakCollection_label_lowpt(consumes<edm::View<pat::PackedCandidate>>(iConfig.getParameter<edm::InputTag>("Trak_lowpt"))),
+  genCands_(consumes<reco::GenParticleCollection>(iConfig.getParameter < edm::InputTag > ("GenParticles"))), 
+  packedGenToken_(consumes<pat::PackedGenParticleCollection>(iConfig.getParameter <edm::InputTag> ("packedGenParticles"))), 
   primaryVertices_Label(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("primaryVertices"))),
   triggerResults_Label(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("TriggerResults"))),
   BSLabel_(consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("bslabel"))),
@@ -159,6 +158,107 @@ void JPsiKaon::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   edm::Handle< View<pat::Muon> > thePATMuonHandle;
   iEvent.getByToken(dimuon_Label,thePATMuonHandle);
+
+  edm::Handle<reco::GenParticleCollection> pruned;
+  //edm::Handle<pat::PackedGenParticle> pruned; 
+  iEvent.getByToken(genCands_, pruned);
+  
+  edm::Handle<pat::PackedGenParticleCollection> packed;
+  iEvent.getByToken(packedGenToken_,packed);
+
+  //*********************************
+  // Get gen level information
+  //*********************************
+  
+  gen_bc_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+  gen_jpsi_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+  gen_pion3_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+  gen_muon1_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+  gen_muon2_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+  gen_bc_vtx.SetXYZ(0.,0.,0.);
+  gen_jpsi_vtx.SetXYZ(0.,0.,0.);
+  gen_bc_ct = -9999.;
+
+  if ( (isMC_ || OnlyGen_) && pruned.isValid() ) {
+    int foundit = 0;
+    for (size_t i=0; i<pruned->size(); i++) {
+      foundit = 0;
+      const reco::Candidate *dau = &(*pruned)[i];
+      if ( (abs(dau->pdgId()) == 521) ) { //&& (dau->status() == 2) ) {
+	foundit++;
+	gen_bc_p4.SetPtEtaPhiM(dau->pt(),dau->eta(),dau->phi(),dau->mass());
+	gen_bc_vtx.SetXYZ(dau->vx(),dau->vy(),dau->vz());
+	for (size_t k=0; k<dau->numberOfDaughters(); k++) {
+	  const reco::Candidate *gdau = dau->daughter(k);
+	  if (gdau->pdgId()==443 ) { //&& gdau->status()==2) {
+	    foundit++;
+	    gen_jpsi_vtx.SetXYZ(gdau->vx(),gdau->vy(),gdau->vz());
+	    gen_bc_ct = GetLifetime(gen_bc_p4,gen_bc_vtx,gen_jpsi_vtx);
+	    int nm=0;
+	    for (size_t l=0; l<gdau->numberOfDaughters(); l++) {
+	      const reco::Candidate *mm = gdau->daughter(l);
+	      if (mm->pdgId()==13) { foundit++;
+		if (mm->status()!=1) {
+		  for (size_t m=0; m<mm->numberOfDaughters(); m++) {
+		    const reco::Candidate *mu = mm->daughter(m);
+		    if (mu->pdgId()==13 ) { //&& mu->status()==1) {
+		      nm++;
+		      gen_muon1_p4.SetPtEtaPhiM(mu->pt(),mu->eta(),mu->phi(),mu->mass());
+		      break;
+		    }
+		  }
+		} else {
+		  gen_muon1_p4.SetPtEtaPhiM(mm->pt(),mm->eta(),mm->phi(),mm->mass());
+		  nm++;
+		}
+	      }
+	      if (mm->pdgId()==-13) { foundit++;
+		if (mm->status()!=1) {
+		  for (size_t m=0; m<mm->numberOfDaughters(); m++) {
+		    const reco::Candidate *mu = mm->daughter(m);
+		    if (mu->pdgId()==-13 ) { //&& mu->status()==1) {
+		      nm++;
+		      gen_muon2_p4.SetPtEtaPhiM(mu->pt(),mu->eta(),mu->phi(),mu->mass());
+		      break;
+		    }
+		  }
+		} else {
+		  gen_muon2_p4.SetPtEtaPhiM(mm->pt(),mm->eta(),mm->phi(),mm->mass());
+		  nm++;
+		}
+	      }
+	    }
+	    if (nm==2) gen_jpsi_p4.SetPtEtaPhiM(gdau->pt(),gdau->eta(),gdau->phi(),gdau->mass());
+	    else foundit-=nm;
+	  }
+	} // for (size_t k
+
+	for (size_t lk=0; lk<packed->size(); lk++) {
+	  const reco::Candidate * dauInPrunedColl = (*packed)[lk].mother(0);
+	  int stable_id = (*packed)[lk].pdgId();
+	  
+	  if (dauInPrunedColl != nullptr && isAncestor(dau,dauInPrunedColl)) {
+	    if( abs(stable_id) == 321 || abs(stable_id) ==211 ) {foundit++;
+	      gen_pion3_p4.SetPtEtaPhiM((*packed)[lk].pt(),(*packed)[lk].eta(),(*packed)[lk].phi(),(*packed)[lk].mass());
+	    }
+	  }
+	}
+	//if ((abs(gdau->pdgId())==211 || abs(gdau->pdgId())==321) && gdau->status()==1) { foundit++;
+	//gen_pion3_p4.SetPtEtaPhiM(gdau->pt(),gdau->eta(),gdau->phi(),gdau->mass());
+	//}
+	//} // for (size_t k
+      }   // if (abs(dau->pdgId())==521 )
+      if (foundit>=5) break;
+    } // for i
+    if (foundit!=5) {
+      gen_bc_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+      gen_jpsi_p4.SetPtEtaPhiM(0.,0.,0.,0.);
+      gen_bc_vtx.SetXYZ(0.,0.,0.);
+      gen_jpsi_vtx.SetXYZ(0.,0.,0.);
+      gen_bc_ct = -9999.;
+      std::cout << "Does not found the given decay " << run << "," << event << " foundit=" << foundit << std::endl; // sanity check
+    }
+  }
  
   //*********************************
   //Now we get the primary vertex 
@@ -570,6 +670,23 @@ bool JPsiKaon::IsTheSame(const pat::GenericParticle& tk, const pat::Muon& mu){
   return false;
 }
 
+bool JPsiKaon::isAncestor(const reco::Candidate* ancestor, const reco::Candidate * particle) {
+    if (ancestor == particle ) return true;
+    for (size_t i=0; i< particle->numberOfMothers(); i++) {
+        if (isAncestor(ancestor,particle->mother(i))) return true;
+    }
+    return false;
+}
+
+double JPsiKaon::GetLifetime(TLorentzVector b_p4, TVector3 production_vtx, TVector3 decay_vtx) {
+   TVector3 pv_dv = decay_vtx - production_vtx;
+   TVector3 b_p3  = b_p4.Vect();
+   pv_dv.SetZ(0.);
+   b_p3.SetZ(0.);
+   Double_t lxy   = pv_dv.Dot(b_p3)/b_p3.Mag();
+   return lxy*b_p4.M()/b_p3.Mag();
+}
+
 // ------------ method called once each job just before starting event loop  ------------
 
 void 
@@ -673,6 +790,18 @@ JPsiKaon::beginJob()
   tree_->Branch("mu2PF",&mu2PF);
   tree_->Branch("mu1loose",&mu1loose);
   tree_->Branch("mu2loose",&mu2loose);
+
+  // gen
+  if (isMC_) {
+     tree_->Branch("gen_bc_p4",     "TLorentzVector",  &gen_bc_p4);
+     tree_->Branch("gen_jpsi_p4",   "TLorentzVector",  &gen_jpsi_p4);
+     tree_->Branch("gen_pion3_p4",  "TLorentzVector",  &gen_pion3_p4);
+     tree_->Branch("gen_muon1_p4",  "TLorentzVector",  &gen_muon1_p4);
+     tree_->Branch("gen_muon2_p4",  "TLorentzVector",  &gen_muon2_p4);
+     tree_->Branch("gen_bc_vtx",    "TVector3",        &gen_bc_vtx);
+     tree_->Branch("gen_jpsi_vtx",  "TVector3",        &gen_jpsi_vtx);
+     tree_->Branch("gen_bc_ct",     &gen_bc_ct,        "gen_bc_ct/F");
+  }
 
 }
 
